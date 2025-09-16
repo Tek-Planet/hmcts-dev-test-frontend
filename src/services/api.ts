@@ -1,4 +1,6 @@
 const API_BASE_URL = 'https://hmcts-dev-test-backend.onrender.com/api';
+// 'http://127.0.0.1:3000/api';
+
 
 export interface RegisterRequest {
   name: string;
@@ -160,6 +162,18 @@ export const authApi = {
 export const tasksApi = {
   getTasks: async (token: string): Promise<Task[]> => {
     const response = await fetch(`${API_BASE_URL}/tasks`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    return handleResponse(response);
+  },
+
+  searchTasks: async (token: string, query: string): Promise<Task[]> => {
+    if (!query.trim()) {
+      throw new ApiError(400, 'Search query is required');
+    }
+    const response = await fetch(`${API_BASE_URL}/tasks/search?q=${encodeURIComponent(query)}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
       },

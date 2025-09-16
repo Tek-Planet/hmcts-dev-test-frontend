@@ -8,8 +8,9 @@ import { TaskCard } from '@/components/tasks/TaskCard';
 import { tasksApi, Task, CreateTaskRequest, UpdateTaskRequest, ApiError } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, CheckCircle, Clock, Filter } from 'lucide-react';
+import { Plus, CheckCircle, Clock, Filter, Search, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 
 export const Dashboard: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -18,6 +19,9 @@ export const Dashboard: React.FC = () => {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<'all' | 'pending' | 'completed'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Task[]>([]);
+  const [isSearchMode, setIsSearchMode] = useState(false);
   const { token } = useAuth();
   const { toast } = useToast();
 
@@ -152,11 +156,47 @@ export const Dashboard: React.FC = () => {
     }
   };
 
+  const handleSearch = async () => {
+    if (!token) return;
+    
+    if (!searchQuery.trim()) {
+      toast({
+        title: 'Search query required',
+        description: 'Please enter a keyword to search for tasks.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    try {
+      setActionLoading('search');
+      const results = await tasksApi.searchTasks(token, searchQuery);
+      setSearchResults(results);
+      setIsSearchMode(true);
+    } catch (error) {
+      toast({
+        title: 'Search failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setSearchResults([]);
+    setIsSearchMode(false);
+  };
+
   const filteredTasks = tasks.filter(task => {
     if (activeFilter === 'all') return true;
     return task.status === activeFilter;
   });
 
+  const displayedTasks = isSearchMode ? searchResults : filteredTasks;
+  
   const taskStats = {
     total: tasks.length,
     pending: tasks.filter(t => t.status === 'pending').length,
@@ -234,7 +274,7 @@ export const Dashboard: React.FC = () => {
               <div>
                 <CardTitle>Task Management</CardTitle>
                 <CardDescription>
-                  Manage your task list
+                  {isSearchMode ? `Search results for "${searchQuery}"` : 'Manage your task list'}
                 </CardDescription>
               </div>
               {!showCreateForm && !editingTask && (
@@ -246,47 +286,48 @@ export const Dashboard: React.FC = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <Tabs value={activeFilter} onValueChange={(value) => setActiveFilter(value as typeof activeFilter)}>
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="all">
-                  All Tasks
-                  <Badge variant="secondary" className="ml-2">
-                    {taskStats.total}
-                  </Badge>
-                </TabsTrigger>
-                <TabsTrigger value="pending">
-                  Pending
-                  <Badge variant="secondary" className="ml-2">
-                    {taskStats.pending}
-                  </Badge>
-                </TabsTrigger>
-                <TabsTrigger value="completed">
-                  Completed
-                  <Badge variant="secondary" className="ml-2">
-                    {taskStats.completed}
-                  </Badge>
-                </TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value={activeFilter} className="mt-6">
-                {filteredTasks.length === 0 ? (
+            {/* Search Section */}
+            <div className="mb-6 space-y-4">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Search tasks by title or description..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                  className="flex-1"
+                />
+                <Button 
+                  onClick={handleSearch} 
+                  disabled={actionLoading === 'search'}
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
+                {isSearchMode && (
+                  <Button 
+                    variant="outline" 
+                    onClick={clearSearch}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+            {/* Task Display Section */}
+            {isSearchMode ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-medium">Search Results</h3>
+                  <Badge variant="secondary">{displayedTasks.length} found</Badge>
+                </div>
+                {displayedTasks.length === 0 ? (
                   <div className="text-center py-12">
                     <div className="text-muted-foreground">
-                      {activeFilter === 'all' 
-                        ? "No tasks yet"
-                        : `No ${activeFilter} tasks`
-                      }
+                      No tasks found matching "{searchQuery}"
                     </div>
-                    {activeFilter === 'all' && !showCreateForm && (
-                      <Button className="mt-4" onClick={() => setShowCreateForm(true)}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Task
-                      </Button>
-                    )}
                   </div>
                 ) : (
                   <div className="grid gap-4">
-                    {filteredTasks.map((task) => (
+                    {displayedTasks.map((task) => (
                       <TaskCard
                         key={task.id}
                         task={task}
@@ -297,8 +338,62 @@ export const Dashboard: React.FC = () => {
                     ))}
                   </div>
                 )}
-              </TabsContent>
-            </Tabs>
+              </div>
+            ) : (
+              <Tabs value={activeFilter} onValueChange={(value) => setActiveFilter(value as typeof activeFilter)}>
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="all">
+                    All Tasks
+                    <Badge variant="secondary" className="ml-2">
+                      {taskStats.total}
+                    </Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="pending">
+                    Pending
+                    <Badge variant="secondary" className="ml-2">
+                      {taskStats.pending}
+                    </Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="completed">
+                    Completed
+                    <Badge variant="secondary" className="ml-2">
+                      {taskStats.completed}
+                    </Badge>
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value={activeFilter} className="mt-6">
+                  {filteredTasks.length === 0 ? (
+                    <div className="text-center py-12">
+                      <div className="text-muted-foreground">
+                        {activeFilter === 'all' 
+                          ? "No tasks yet"
+                          : `No ${activeFilter} tasks`
+                        }
+                      </div>
+                      {activeFilter === 'all' && !showCreateForm && (
+                        <Button className="mt-4" onClick={() => setShowCreateForm(true)}>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Task
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="grid gap-4">
+                      {filteredTasks.map((task) => (
+                        <TaskCard
+                          key={task.id}
+                          task={task}
+                          onEdit={setEditingTask}
+                          onDelete={handleDeleteTask}
+                          onToggleStatus={handleToggleStatus}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            )}
           </CardContent>
         </Card>
       </div>
