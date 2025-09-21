@@ -22,7 +22,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   const formatDateTime = (dateTimeString: string) => {
     try {
       const date = new Date(dateTimeString);
-      return date.toLocaleString('en-US', {
+      return date.toLocaleString('en-UK', {
         year: 'numeric',
         month: 'short',
         day: 'numeric',

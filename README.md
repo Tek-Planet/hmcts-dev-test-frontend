@@ -49,8 +49,8 @@ src/
 
 1. Clone the repository
 ```bash
-git clone <repository-url>
-cd task-management-service
+git clone clone https://github.com/Tek-Planet/hmcts-dev-test-frontend.git
+cd hmcts-dev-test-frontend
 ```
 
 2. Install dependencies
@@ -63,7 +63,7 @@ npm install
 npm run dev
 ```
 
-The application will be available at `http://localhost:5173`
+The application will be available at `http://localhost:8080`
 
 ## Available Scripts
 
@@ -127,7 +127,7 @@ Tests are located alongside components in `__tests__` directories.
 - XSS prevention
 - CSRF protection headers
 
-##  Live Demo
+## 🚀 Live Demo 
 https://hmcts-dev-test-frontend.netlify.app/
 
 

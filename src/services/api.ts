@@ -1,5 +1,5 @@
-const API_BASE_URL = 'https://hmcts-dev-test-backend.onrender.com/api';
-// 'http://127.0.0.1:3000/api';
+const API_BASE_URL = 'https://api.merchantgroup.com.ng/api';
+// const API_BASE_URL =  'http://127.0.0.1:3000/api';
 
 
 export interface RegisterRequest {

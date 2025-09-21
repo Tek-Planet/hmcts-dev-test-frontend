@@ -40,7 +40,7 @@ describe('ProtectedRoute', () => {
       { wrapper: TestWrapper }
     );
 
-    // Loading state shows skeleton, not actual loading text
+    // Loading state shows skeleton not actual loading text
     const elements = document.querySelectorAll('.animate-pulse');
     expect(elements.length).toBeGreaterThan(0);
   });
